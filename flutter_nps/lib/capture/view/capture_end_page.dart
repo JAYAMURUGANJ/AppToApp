@@ -1,7 +1,6 @@
 import 'package:app_ui/app_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_nps/l10n/l10n.dart';
-import 'package:platform_close/platform_close.dart';
 
 class CaptureEndPage extends StatelessWidget {
   const CaptureEndPage({Key? key}) : super(key: key);
@@ -45,7 +44,8 @@ class CaptureEndView extends StatelessWidget {
           top: Spacing.xl,
           right: Spacing.s,
           child: IconButton(
-            onPressed: PlatformClose.instance.close,
+            // onPressed: PlatformClose.instance.close,
+            onPressed: () => Navigator.pop(context),
             icon: const Icon(Icons.close),
           ),
         ),

@@ -1,10 +1,13 @@
 import 'package:app_ui/app_ui.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_nps/capture/capture.dart';
 import 'package:flutter_nps/l10n/l10n.dart';
 import 'package:nps_repository/nps_repository.dart';
 import 'package:platform_close/platform_close.dart';
+
+import '../data_receiver.dart';
 
 class CapturePage extends StatelessWidget {
   const CapturePage({Key? key}) : super(key: key);
@@ -22,8 +25,52 @@ class CapturePage extends StatelessWidget {
   }
 }
 
-class CaptureView extends StatelessWidget {
+class CaptureView extends StatefulWidget {
   const CaptureView({Key? key}) : super(key: key);
+
+  @override
+  State<CaptureView> createState() => _CaptureViewState();
+}
+
+class _CaptureViewState extends State<CaptureView> {
+  Map<String, dynamic>? _nativeData;
+  static const platform = MethodChannel('com.example.myapplication/data');
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Your message here..")),
+      );
+    });
+    platform.setMethodCallHandler((call) async {
+      if (call.method == 'sendData') {
+        final data = Map<String, dynamic>.from(
+          (call.arguments as Map<dynamic, dynamic>),
+        );
+        debugPrint("Received from KMP: $data");
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text("$data")),
+          );
+        });
+        // Use the data in your widget
+      }
+    });
+
+    // Load native data when the widget is initialized
+    _loadNativeData();
+  }
+
+  Future<void> _loadNativeData() async {
+    final data = await DataReceiver.getDataFromNative();
+    if (mounted) {
+      setState(() {
+        _nativeData = data;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,6 +118,20 @@ class CaptureView extends StatelessWidget {
                       ?.copyWith(color: NpsColors.colorGrey2),
                 ),
                 const SizedBox(height: Spacing.xl),
+                if (_nativeData != null) ...[
+                  Text(
+                    'Native Data Received:',
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: Spacing.xs),
+                  Text(
+                    _nativeData.toString(),
+                    style: theme.textTheme.bodyMedium,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: Spacing.lg),
+                ],
                 IntrinsicWidth(
                   child: Column(
                     children: [
