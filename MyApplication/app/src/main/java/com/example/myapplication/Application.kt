@@ -104,8 +104,6 @@ class AddFlutterApp : Application() {
                         "source" to "native_warmup",
                         "timestamp" to System.currentTimeMillis()
                     ), object : MethodChannel.Result {
-
-
                         override fun success(result: Any?) {
                             Log.d(TAG, "Flutter engine warmup successful: $result")
                         }
@@ -140,20 +138,16 @@ class AddFlutterApp : Application() {
     override fun onTrimMemory(level: Int) {
         super.onTrimMemory(level)
         Log.d(TAG, "Memory trim requested with level: $level")
-
         when (level) {
-
             // Background states - less critical
             TRIM_MEMORY_BACKGROUND -> {
                 Log.d(TAG, "BACKGROUND: App went to background, normal memory management")
                 handleBackgroundMemory()
             }
-
             TRIM_MEMORY_UI_HIDDEN -> {
                 Log.d(TAG, "UI_HIDDEN: App UI is no longer visible, can release UI resources")
                 handleUIHidden()
             }
-
             else -> {
                 Log.d(TAG, "Unknown memory trim level: $level")
             }

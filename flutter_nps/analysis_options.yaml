@@ -6,6 +6,7 @@ analyzer:
     strict-inference: true
 
   errors:
+    invalid_use_of_visible_for_testing_member: ignore
     missing_required_param: error
     missing_return: error
 

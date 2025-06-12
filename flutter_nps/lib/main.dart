@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_nps/app/app.dart';
-import 'package:flutter_nps/bootstrap.dart';
+import 'package:flutter_nps/utils/bootstrap.dart';
+
+import 'app.dart';
 
 void main() {
-  bootstrap(() => const SampleApp());
+  bootstrap(() => const App());
 }
 
 @pragma("vm:entry-point")
 void loadFromNative() async {
   WidgetsFlutterBinding.ensureInitialized();
-  bootstrap(() => const SampleApp());
+  bootstrap(() => const App());
 }

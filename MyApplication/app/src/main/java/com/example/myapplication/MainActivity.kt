@@ -223,12 +223,12 @@ private fun sendDataToFlutter(context: Context) {
     // Wait for Flutter to be ready before sending data
     Handler(Looper.getMainLooper()).postDelayed({
         checkFlutterReadiness(channel) { isReady ->
+            val dataMap = createSampleData()
             if (isReady) {
-                val dataMap = createSampleData()
+                Log.i(MainActivity.TAG, "Flutter is ready, sending data...")
                 sendDataWithCallback(channel, dataMap, context)
             } else {
                 Log.w(MainActivity.TAG, "Flutter not ready, sending data anyway")
-                val dataMap = createSampleData()
                 sendDataWithCallback(channel, dataMap, context)
             }
         }
