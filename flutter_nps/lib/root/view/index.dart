@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/data_bloc.dart';
 import '../bloc/data_event.dart';
 import '../bloc/data_state.dart';
+import '../model/user_data.dart';
 
 class IndexPage extends StatefulWidget {
   const IndexPage({super.key});
@@ -20,7 +21,7 @@ class _IndexPageState extends State<IndexPage>
   late Animation<Offset> _slideAnimation;
 
   // Track last received data to prevent duplicate notifications
-  Map<String, dynamic>? _lastReceivedData;
+  UserData? _lastReceivedData;
 
   @override
   void initState() {
@@ -81,12 +82,11 @@ class _IndexPageState extends State<IndexPage>
       body: BlocConsumer<DataBloc, DataState>(
         listener: (context, state) {
           if (state is DataReady && state.receivedData != null) {
+            final userData = UserData.fromMap(state.receivedData!);
             // Only show notification if the data is actually new
-            if (_lastReceivedData == null ||
-                !_mapsAreEqual(_lastReceivedData!, state.receivedData!)) {
-              _lastReceivedData =
-                  Map<String, dynamic>.from(state.receivedData!);
-              _showDataSnackBar(context, state.receivedData!);
+            if (_lastReceivedData == null || _lastReceivedData != userData) {
+              _lastReceivedData = userData;
+              _showDataSnackBar(context, userData);
             }
           } else if (state is DataError) {
             _showErrorSnackBar(context, state.error);
@@ -220,7 +220,8 @@ class _IndexPageState extends State<IndexPage>
                   _buildQuickActions(context),
                   const SizedBox(height: 16),
                   if (state.receivedData != null) ...[
-                    _buildDataCard(context, state.receivedData!),
+                    _buildUserDataCard(
+                        context, UserData.fromMap(state.receivedData!)),
                     const SizedBox(height: 16),
                   ],
                   _buildMessageLogCard(context, state.messageLog),
@@ -387,7 +388,7 @@ class _IndexPageState extends State<IndexPage>
     );
   }
 
-  Widget _buildDataCard(BuildContext context, Map<String, dynamic> data) {
+  Widget _buildUserDataCard(BuildContext context, UserData userData) {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Card(
@@ -414,7 +415,7 @@ class _IndexPageState extends State<IndexPage>
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
-                    Icons.data_object_rounded,
+                    Icons.person_rounded,
                     color: colorScheme.onTertiary,
                     size: 20,
                   ),
@@ -425,14 +426,14 @@ class _IndexPageState extends State<IndexPage>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Received Data',
+                        'User Data',
                         style:
                             Theme.of(context).textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w600,
                                 ),
                       ),
                       Text(
-                        '${data.length} properties',
+                        userData.displayName,
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: colorScheme.onSurfaceVariant,
                             ),
@@ -443,7 +444,7 @@ class _IndexPageState extends State<IndexPage>
               ],
             ),
             const SizedBox(height: 16),
-            ..._buildDataRows(data),
+            ..._buildUserDataRows(userData),
           ],
         ),
       ),
@@ -663,8 +664,43 @@ class _IndexPageState extends State<IndexPage>
     );
   }
 
-  List<Widget> _buildDataRows(Map<String, dynamic> data) {
-    return data.entries.map((entry) {
+  List<Widget> _buildUserDataRows(UserData userData) {
+    final List<MapEntry<String, dynamic>> dataEntries = [];
+
+    // Add main user properties
+    if (userData.userName != null) {
+      dataEntries.add(MapEntry('User Name', userData.userName!));
+    }
+    if (userData.userId != null) {
+      dataEntries.add(MapEntry('User ID', userData.userId!));
+    }
+    if (userData.email != null) {
+      dataEntries.add(MapEntry('Email', userData.email!));
+    }
+    if (userData.isActive != null) {
+      dataEntries
+          .add(MapEntry('Status', userData.isActive! ? 'Active' : 'Inactive'));
+    }
+    if (userData.deviceInfo != null) {
+      dataEntries.add(MapEntry('Device', userData.deviceInfo!));
+    }
+    if (userData.timestamp != null) {
+      final dateTime = userData.timestampAsDateTime;
+      dataEntries.add(MapEntry(
+          'Timestamp',
+          dateTime != null
+              ? dateTime.toString().substring(0, 19)
+              : userData.timestamp.toString()));
+    }
+
+    // Add additional data if exists
+    if (userData.additionalData != null) {
+      userData.additionalData!.forEach((key, value) {
+        dataEntries.add(MapEntry(key, value));
+      });
+    }
+
+    return dataEntries.map((entry) {
       return Container(
         margin: const EdgeInsets.symmetric(vertical: 6),
         padding: const EdgeInsets.all(16),
@@ -704,10 +740,7 @@ class _IndexPageState extends State<IndexPage>
     }).toList();
   }
 
-  void _showDataSnackBar(BuildContext context, Map<String, dynamic> data) {
-    final userName = data['userName'] ?? 'Unknown User';
-    final userId = data['userId'] ?? 'Unknown ID';
-
+  void _showDataSnackBar(BuildContext context, UserData userData) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
@@ -732,7 +765,7 @@ class _IndexPageState extends State<IndexPage>
                     style: TextStyle(fontWeight: FontWeight.w600),
                   ),
                   Text(
-                    '$userName ($userId)',
+                    '${userData.displayName} (${userData.displayId})',
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.9),
                       fontSize: 12,
@@ -822,7 +855,7 @@ class _IndexPageState extends State<IndexPage>
     if (value is num && value > 1000000000) {
       try {
         final date = DateTime.fromMillisecondsSinceEpoch(value.toInt());
-        return '$value\n(${date.toString().substring(0, 19)})';
+        return date.toString().substring(0, 19);
       } catch (e) {
         return value.toString();
       }
@@ -849,17 +882,5 @@ class _IndexPageState extends State<IndexPage>
     if (value is num) return Colors.blue.shade600;
     if (value is String) return Colors.purple.shade600;
     return colorScheme.onSurface;
-  }
-
-  // Helper method to compare maps deeply
-  bool _mapsAreEqual(Map<String, dynamic> map1, Map<String, dynamic> map2) {
-    if (map1.length != map2.length) return false;
-
-    for (String key in map1.keys) {
-      if (!map2.containsKey(key)) return false;
-      if (map1[key] != map2[key]) return false;
-    }
-
-    return true;
   }
 }
